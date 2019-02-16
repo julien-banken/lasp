@@ -111,11 +111,11 @@ declare_next(#state{variables=Variables0}=S, _Res, [Id, _Type]) ->
 %% Properties.
 
 prop_sequential() ->
-    ?SETUP(fun() ->
+    logger:log(notice,fun() ->
                 setup(),
                 fun teardown/0
          end,
-        ?FORALL(Cmds, commands(?MODULE),
+        logger:log(notice,Cmds, commands(?MODULE),
                 begin
                     {H, S, Res} = run_commands(?MODULE, Cmds),
                     pretty_commands(?MODULE, Cmds, {H, S, Res},

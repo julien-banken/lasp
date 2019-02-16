@@ -250,7 +250,7 @@ start_runner() ->
         ok ->
             ok;
         Reason ->
-            lager:info("Received unexpected error: ~p", [Reason]),
+            logger:log(notice,"Received unexpected error: ~p", [Reason]),
             exit(Reason)
     end,
 
@@ -266,7 +266,7 @@ start_runner() ->
     ok = lasp_config:set(workflow, true),
     ok = partisan_config:set(partisan_peer_service_manager,
                              partisan_default_peer_service_manager),
-    lager:info("Configured peer_service_manager ~p on node ~p",
+    logger:log(notice,"Configured peer_service_manager ~p on node ~p",
                [partisan_default_peer_service_manager, lasp_support:mynode()]),
 
     {ok, _} = application:ensure_all_started(lasp),
@@ -329,15 +329,15 @@ load_lasp(Node, _Config, Case) ->
                                                [lasp_plumtree_backend]]),
     ok = rpc:call(Node, lasp_config, set, [workflow, true]),
 
-    lager:info("Enabling membership..."),
+    logger:log(notice,"Enabling membership..."),
     ok = rpc:call(Node, lasp_config, set, [membership, true]),
 
-    lager:info("Disabling blocking sync..."),
+    logger:log(notice,"Disabling blocking sync..."),
     ok = rpc:call(Node, lasp_config, set, [blocking_sync, false]),
 
     ok = rpc:call(Node, partisan_config, set, [partisan_peer_service_manager,
                                                partisan_default_peer_service_manager]),
-    lager:info("Configured peer_service_manager ~p on node ~p",
+    logger:log(notice,"Configured peer_service_manager ~p on node ~p",
                [partisan_default_peer_service_manager, Node]),
 
     ok = rpc:call(Node, application, set_env, [lasp,
@@ -349,7 +349,7 @@ start_lasp(Node, Config) ->
         {ok, _} = rpc:call(Node, application, ensure_all_started, [lasp])
     catch
         _:Error ->
-            lager:info("Node initialization for ~p failed: ~p", [Node, Error]),
+            logger:log(notice,"Node initialization for ~p failed: ~p", [Node, Error]),
             lists:foreach(fun(N) ->
                                   WebPort = rpc:call(N,
                                                      lasp_config,
@@ -359,7 +359,7 @@ start_lasp(Node, Config) ->
                                                       lasp_config,
                                                       get,
                                                       [peer_port, undefined]),
-                                  lager:info("Node: ~p PeerPort: ~p WebPort ~p", [N, PeerPort, WebPort])
+                                  logger:log(notice,"Node: ~p PeerPort: ~p WebPort ~p", [N, PeerPort, WebPort])
                           end, proplists:get_value(started, Config) ++ [Node]),
             ct:fail(can_not_initialize_node)
     end,
@@ -398,7 +398,7 @@ push_logs() ->
         false ->
             ok;
         _ ->
-            lager:info("Will push logs."),
+            logger:log(notice,"Will push logs."),
             case LOGS of
                 "s3" ->
                     %% Configure erlcloud.
@@ -410,11 +410,11 @@ push_logs() ->
                     BucketName = "lasp-instrumentation-logs",
                     %% Create S3 bucket.
                     try
-                        lager:info("Creating bucket: ~p", [BucketName]),
+                        logger:log(notice,"Creating bucket: ~p", [BucketName]),
                         ok = erlcloud_s3:create_bucket(BucketName)
                     catch
                         _:{aws_error, Error} ->
-                            lager:info("Bucket creation failed: ~p", [Error]),
+                            logger:log(notice,"Bucket creation failed: ~p", [Error]),
                             ok
                     end,
 
@@ -422,13 +422,13 @@ push_logs() ->
                     lists:foreach(
                         fun({FilePath, S3Id}) ->
                             {ok, Binary} = file:read_file(FilePath),
-                            lager:info("Pushing log to S3 ~p.", [S3Id]),
+                            logger:log(notice,"Pushing log to S3 ~p.", [S3Id]),
                             erlcloud_s3:put_object(BucketName, S3Id, Binary)
                         end,
                         lasp_instrumentation:log_files()
                     ),
 
-                    lager:info("Pushing logs completed.");
+                    logger:log(notice,"Pushing logs completed.");
                 "redis" ->
                     RedisHost = os:getenv("REDIS_SERVICE_HOST", "127.0.0.1"),
                     RedisPort = os:getenv("REDIS_SERVICE_PORT", "6379"),
@@ -439,13 +439,13 @@ push_logs() ->
                         fun({FilePath, S3Id}) ->
                             {ok, Binary} = file:read_file(FilePath),
 
-                            lager:info("Pushing log to Redis ~p.", [S3Id]),
+                            logger:log(notice,"Pushing log to Redis ~p.", [S3Id]),
                             {ok, <<"OK">>} = eredis:q(C, ["SET", S3Id, Binary])
                         end,
                         lasp_instrumentation:log_files()
                     ),
 
-                    lager:info("Pushing logs completed.")
+                    logger:log(notice,"Pushing logs completed.")
             end
     end.
 

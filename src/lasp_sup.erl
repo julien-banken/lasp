@@ -44,6 +44,10 @@ start_link() ->
 %% ===================================================================
 
 init(_Args) ->
+    %% configure the logger module from the application config
+    % Logger = application:get_env(lasp, logger_module, logger),
+    % lasp_config:set('$lasp_logger', Logger),
+
     %% Configure defaults.
     configure_defaults(),
 
@@ -85,7 +89,7 @@ init(_Args) ->
                                             membership,
                                             MembershipDefault),
     lasp_config:set(membership, MembershipEnabled),
-    lager:info("Membership: ~p", [MembershipEnabled]),
+    logger:log(notice,"Membership: ~p", [MembershipEnabled]),
 
     MembershipSpecs = case MembershipEnabled of
         true ->
@@ -103,7 +107,7 @@ init(_Args) ->
                                           workflow,
                                           WorkflowDefault),
     lasp_config:set(workflow, WorkflowEnabled),
-    lager:info("Workflow: ~p", [WorkflowEnabled]),
+    logger:log(notice,"Workflow: ~p", [WorkflowEnabled]),
 
     WorkflowSpecs = case WorkflowEnabled of
         true ->
@@ -145,7 +149,7 @@ init(_Args) ->
 
     Children0 = case InstrEnabled of
         true ->
-            lager:info("Instrumentation is enabled!"),
+            logger:log(notice,"Instrumentation is enabled!"),
             Instrumentation = {lasp_instrumentation,
                                {lasp_instrumentation, start_link, []},
                                permanent, 5000, worker,
@@ -214,49 +218,50 @@ web_specs() ->
 
 %% @private
 configure_defaults() ->
+
     JitterDefault = list_to_atom(os:getenv("JITTER", "false")),
     Jitter = application:get_env(?APP, jitter, JitterDefault),
-    lager:info("Setting jitter: ~p", [Jitter]),
+    logger:log(notice,"Setting jitter: ~p", [Jitter]),
     lasp_config:set(jitter, Jitter),
 
     JitterPercentDefault = list_to_integer(os:getenv("JITTER_PERCENT", "1")),
     JitterPercent = application:get_env(?APP, jitter_percent, JitterPercentDefault),
-    lager:info("Setting jitter percent: ~p", [JitterPercent]),
+    logger:log(notice,"Setting jitter percent: ~p", [JitterPercent]),
     lasp_config:set(jitter_percent, JitterPercent),
 
     TutorialDefault = list_to_atom(os:getenv("TUTORIAL", "false")),
     Tutorial = application:get_env(?APP, tutorial, TutorialDefault),
-    lager:info("Setting tutorial: ~p", [Tutorial]),
+    logger:log(notice,"Setting tutorial: ~p", [Tutorial]),
     lasp_config:set(tutorial, Tutorial),
 
     EventIntervalDefault = list_to_integer(os:getenv("EVENT_INTERVAL", "0")),
     EventInterval = application:get_env(?APP, event_interval, EventIntervalDefault),
-    lager:info("Setting event interval: ~p", [EventInterval]),
+    logger:log(notice,"Setting event interval: ~p", [EventInterval]),
     lasp_config:set(event_interval, EventInterval),
 
     MaxEventsDefault = list_to_integer(os:getenv("MAX_EVENTS", "1000")),
     MaxEvents = application:get_env(?APP, max_events, MaxEventsDefault),
-    lager:info("Setting max events: ~p", [MaxEvents]),
+    logger:log(notice,"Setting max events: ~p", [MaxEvents]),
     lasp_config:set(max_events, MaxEvents),
 
     ExtendedLoggingDefault = list_to_atom(os:getenv("EXTENDED_LOGGING", "false")),
     ExtendedLogging = application:get_env(?APP, extended_logging, ExtendedLoggingDefault),
-    lager:info("Setting extended logging: ~p", [ExtendedLogging]),
+    logger:log(notice,"Setting extended logging: ~p", [ExtendedLogging]),
     lasp_config:set(extended_logging, ExtendedLogging),
 
     MailboxLoggingDefault = list_to_atom(os:getenv("MAILBOX_LOGGING", "false")),
     MailboxLogging = application:get_env(?APP, mailbox_logging, MailboxLoggingDefault),
-    lager:info("Setting mailbox logging: ~p", [MailboxLogging]),
+    logger:log(notice,"Setting mailbox logging: ~p", [MailboxLogging]),
     lasp_config:set(mailbox_logging, MailboxLogging),
 
     ModeDefault = list_to_atom(os:getenv("MODE", "state_based")),
     Mode = application:get_env(?APP, mode, ModeDefault),
-    lager:info("Setting operation mode: ~p", [Mode]),
+    logger:log(notice,"Setting operation mode: ~p", [Mode]),
     lasp_config:set(mode, Mode),
 
     SetDefault = list_to_atom(os:getenv("SET", "orset")),
     Set = application:get_env(?APP, set, SetDefault),
-    lager:info("Setting set type: ~p", [Set]),
+    logger:log(notice,"Setting set type: ~p", [Set]),
     lasp_config:set(set, Set),
 
     ProfileDefault = list_to_atom(os:getenv("PROFILE", "false")),
@@ -269,7 +274,7 @@ configure_defaults() ->
     BroadcastEnabled = application:get_env(?APP,
                                            broadcast,
                                            BroadcastDefault),
-    lager:info("Setting broadcast: ~p", [BroadcastEnabled]),
+    logger:log(notice,"Setting broadcast: ~p", [BroadcastEnabled]),
     lasp_config:set(broadcast, BroadcastEnabled),
 
     SimulationDefault = list_to_atom(os:getenv("SIMULATION", "undefined")),
@@ -390,7 +395,7 @@ advertisement_counter_child_specs() ->
                                           ad_counter_simulation_client,
                                           AdClientDefault),
     lasp_config:set(ad_counter_simulation_client, AdClientEnabled),
-    lager:info("AdClientEnabled: ~p", [AdClientEnabled]),
+    logger:log(notice,"AdClientEnabled: ~p", [AdClientEnabled]),
 
     %% Since IMPRESSION_INTERVAL=10s
     %% each node, per minute, does 6 impressions.
@@ -423,7 +428,7 @@ advertisement_counter_child_specs() ->
                                           ad_counter_simulation_server,
                                           AdServerDefault),
     lasp_config:set(ad_counter_simulation_server, AdServerEnabled),
-    lager:info("AdServerEnabled: ~p", [AdServerEnabled]),
+    logger:log(notice,"AdServerEnabled: ~p", [AdServerEnabled]),
 
     ServerSpecs = case AdServerEnabled of
         true ->
@@ -453,7 +458,7 @@ game_tournament_child_specs() ->
                                           tournament_simulation_client,
                                           TournClientDefault),
     lasp_config:set(tournament_simulation_client, TournClientEnabled),
-    lager:info("TournClientEnabled: ~p", [TournClientEnabled]),
+    logger:log(notice,"TournClientEnabled: ~p", [TournClientEnabled]),
 
     ClientSpecs = case TournClientEnabled of
         true ->
@@ -472,7 +477,7 @@ game_tournament_child_specs() ->
                                              tournament_simulation_server,
                                              TournServerDefault),
     lasp_config:set(tournament_simulation_server, TournServerEnabled),
-    lager:info("TournServerEnabled: ~p", [TournServerEnabled]),
+    logger:log(notice,"TournServerEnabled: ~p", [TournServerEnabled]),
 
     ServerSpecs = case TournServerEnabled of
         true ->
@@ -495,7 +500,7 @@ throughput_child_specs() ->
                                          throughput_type,
                                          ThroughputTypeDefault),
     lasp_config:set(throughput_type, ThroughputType),
-    lager:info("ThroughputType: ~p", [ThroughputType]),
+    logger:log(notice,"ThroughputType: ~p", [ThroughputType]),
 
     %% Figure out who is acting as the client.
     ClientDefault = list_to_atom(os:getenv("THROUGHPUT_SIM_CLIENT", "false")),
@@ -503,7 +508,7 @@ throughput_child_specs() ->
                                         throughput_simulation_client,
                                         ClientDefault),
     lasp_config:set(throughput_simulation_client, ClientEnabled),
-    lager:info("ThroughputClientEnabled: ~p", [ClientEnabled]),
+    logger:log(notice,"ThroughputClientEnabled: ~p", [ClientEnabled]),
 
     ClientSpecs = case ClientEnabled of
         true ->
@@ -522,7 +527,7 @@ throughput_child_specs() ->
                                         throughput_simulation_server,
                                         ServerDefault),
     lasp_config:set(throughput_simulation_server, ServerEnabled),
-    lager:info("ThroughputServerEnabled: ~p", [ServerEnabled]),
+    logger:log(notice,"ThroughputServerEnabled: ~p", [ServerEnabled]),
 
     ServerSpecs = case ServerEnabled of
         true ->
@@ -545,7 +550,7 @@ divergence_child_specs() ->
                                          divergence_type,
                                          DivergenceTypeDefault),
     lasp_config:set(divergence_type, DivergenceType),
-    lager:info("DivergenceType: ~p", [DivergenceType]),
+    logger:log(notice,"DivergenceType: ~p", [DivergenceType]),
 
     %% Figure out who is acting as the client.
     ClientDefault = list_to_atom(os:getenv("DIVERGENCE_SIM_CLIENT", "false")),
@@ -553,7 +558,7 @@ divergence_child_specs() ->
                                         divergence_simulation_client,
                                         ClientDefault),
     lasp_config:set(divergence_simulation_client, ClientEnabled),
-    lager:info("DivergenceClientEnabled: ~p", [ClientEnabled]),
+    logger:log(notice,"DivergenceClientEnabled: ~p", [ClientEnabled]),
 
     ClientSpecs = case ClientEnabled of
         true ->
@@ -572,7 +577,7 @@ divergence_child_specs() ->
                                         divergence_simulation_server,
                                         ServerDefault),
     lasp_config:set(divergence_simulation_server, ServerEnabled),
-    lager:info("DivergenceServerEnabled: ~p", [ServerEnabled]),
+    logger:log(notice,"DivergenceServerEnabled: ~p", [ServerEnabled]),
 
     ServerSpecs = case ServerEnabled of
         true ->

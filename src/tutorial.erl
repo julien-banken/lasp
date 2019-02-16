@@ -33,7 +33,7 @@
 %% @doc Connect to other nodes in the cluster.
 connect() ->
     lists:foreach(fun(Node) ->
-                lager:info("Connecting to ~p", [Node]),
+                logger:log(notice,"Connecting to ~p", [Node]),
 
                 %% First, establish the EPMD connection.
                 pong = net_adm:ping(Node),
@@ -46,7 +46,7 @@ connect() ->
 
                 %% Now, connect with the Lasp peer service.
                 Result = lasp_peer_service:join(#{name => Node, listen_addrs => [#{ip => {127,0,0,1}, port => PeerPort}]}),
-                lager:info("Join result: ~p", [Result])
+                logger:log(notice,"Join result: ~p", [Result])
 
         end, lists:delete(lasp_support:mynode(), ?NODES)),
 

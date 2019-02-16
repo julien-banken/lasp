@@ -147,6 +147,28 @@
 %% @doc The type of objects that we can be notified about.
 -type object() :: crdt().
 
+%% logging shim
+% -define(DEBUG(Fmt, Args), ?DISPATCH_LOG(debug, Fmt, Args)).
+% -define(INFO(Fmt, Args), ?DISPATCH_LOG(info, Fmt, Args)).
+% -define(NOTICE(Fmt, Args), ?DISPATCH_LOG(notice, Fmt, Args)).
+% -define(WARN(Fmt, Args), ?DISPATCH_LOG(warning, Fmt, Args)).
+% -define(WARNING(Fmt, Args), ?DISPATCH_LOG(warning, Fmt, Args)).
+% -define(ERR(Fmt, Args), ?DISPATCH_LOG(error, Fmt, Args)).
+% -define(ERROR(Fmt, Args), ?DISPATCH_LOG(error, Fmt, Args)).
+
+% Notice that catch has low precedence and catch subexpressions often needs to be enclosed in a block expression or in parentheses:
+%
+% 3> A = catch 1+2.
+% ** 1: syntax error before: 'catch' **
+% 4> A = (catch 1+2).
+% 3
+% -define(DISPATCH_LOG(Level, Fmt, Args),
+    %% same as OTP logger does when using the macro
+    % Logger = lasp_config:get('$lasp_logger',logger),
+    % Logger = application:get_env(lasp, logger_module, logger),
+    % catch (application:get_env(lasp, logger_module, logger):log(Level, Fmt, Args))).
+    % ok).
+
 %% Test identifiers.
 -define(ADS, {<<"ads">>, ?SET_TYPE}).
 -define(CONTRACTS, {<<"contracts">>, ?SET_TYPE}).
