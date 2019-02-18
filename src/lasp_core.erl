@@ -373,7 +373,8 @@ bind_to(AccId, Id, Store) ->
 %%
 -spec thread(module(), func(), args(), store()) -> ok.
 thread(Module, Function, Args, _Store) ->
-    Fun = fun() -> erlang:apply(Module, Function, Args) end,
+    % Fun = fun() -> erlang:apply(Module, Function, Args) end,
+    Fun = fun() -> Module:Function(Args) end,
     spawn(Fun),
     ok.
 

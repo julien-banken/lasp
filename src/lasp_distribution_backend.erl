@@ -24,7 +24,7 @@
 -behaviour(gen_server).
 
 %% Administrative controls.
--export([reset/0, 
+-export([reset/0,
          propagate/1]).
 
 %% API
@@ -357,7 +357,7 @@ handle_call({declare, Id, Type}, _From,
     {reply, Result, State};
 
 %% @todo
-handle_call({interested, Topic}, _From, 
+handle_call({interested, Topic}, _From,
             #state{store=Store, actor=Actor}=State) ->
     lasp_marathon_simulations:log_message_queue_size("interested/1"),
 
@@ -386,7 +386,7 @@ handle_call({interested, Topic}, _From,
     {reply, Final, State};
 
 %% @todo
-handle_call({disinterested, Topic}, _From, 
+handle_call({disinterested, Topic}, _From,
              #state{store=Store, actor=Actor}=State) ->
     lasp_marathon_simulations:log_message_queue_size("disinterested/1"),
 
@@ -414,7 +414,7 @@ handle_call({disinterested, Topic}, _From,
     {reply, Final, State};
 
 %% @todo
-handle_call({set_topic, Id, Topic}, _From, 
+handle_call({set_topic, Id, Topic}, _From,
              #state{store=Store, actor=Actor}=State) ->
     lasp_marathon_simulations:log_message_queue_size("set_topic/2"),
 
@@ -440,7 +440,7 @@ handle_call({set_topic, Id, Topic}, _From,
     {reply, ok, State};
 
 %% @todo
-handle_call({remove_topic, Id, Topic}, _From, 
+handle_call({remove_topic, Id, Topic}, _From,
              #state{store=Store, actor=Actor}=State) ->
     lasp_marathon_simulations:log_message_queue_size("remove_topic/2"),
 
@@ -777,7 +777,8 @@ declare_if_not_found({error, not_found}, {StorageId, TypeId},
                      #state{store=Store, actor=Actor}, Module, Function, Args) ->
     {ok, {{StorageId, TypeId}, _, _, _}} = ?CORE:declare(StorageId, TypeId,
                                                          ?CLOCK_INIT(Actor), Store),
-    erlang:apply(Module, Function, Args);
+    % erlang:apply(Module, Function, Args);
+    Module:Function(Args);
 declare_if_not_found(Result, _Id, _State, _Module, _Function, _Args) ->
     Result.
 

@@ -298,7 +298,8 @@ remove_topic(Id, Topic) ->
 do(Function, Args) ->
     Backend = lasp_config:get(distribution_backend,
                               lasp_distribution_backend),
-    erlang:apply(Backend, Function, Args).
+    % erlang:apply(Backend, Function, Args).
+    Backend:Function(Args).
 
 %% @private
 can_partially_replicate() ->

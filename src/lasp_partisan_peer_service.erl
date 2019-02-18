@@ -54,7 +54,8 @@ join(#{name := _Name, listen_addrs := _ListenAddrs} = Node, Auto) ->
 
 %% @doc Initiate join. Nodes cannot join themselves.
 join(Node, Node, Auto) ->
-    do(join, [Node, Node, Auto]).
+    % do(join, [Node, Node, Auto]).
+    ?PEER_SERVICE:join([Node, Node, Auto]).
 
 %% @doc Leave the cluster.
 leave() ->
@@ -82,10 +83,13 @@ stop(Reason) ->
 
 %% @doc Execute call to the proper backend.
 do(join, Args) ->
-    erlang:apply(?PEER_SERVICE, join, Args);
+    % erlang:apply(?PEER_SERVICE, join, Args);
+    ?PEER_SERVICE:join(Args);
 do(Function, Args) ->
-    erlang:apply(?PEER_SERVICE, Function, Args).
+    % erlang:apply(?PEER_SERVICE, Function, Args).
+    ?PEER_SERVICE:Function(Args).
 
 %% @doc Execute call to the proper backend.
 do(Module, Function, Args) ->
-    erlang:apply(Module, Function, Args).
+    % erlang:apply(Module, Function, Args).
+    Module, Function, Args).
