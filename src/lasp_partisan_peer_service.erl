@@ -92,4 +92,4 @@ do(Function, Args) ->
 %% @doc Execute call to the proper backend.
 do(Module, Function, Args) ->
     % erlang:apply(Module, Function, Args).
-    Module, Function, Args).
+    Module:Function(Args).
