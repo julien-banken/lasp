@@ -107,7 +107,11 @@ init([Identifier]) ->
                                                         dets),
                                 atom_to_list(Identifier)),
         ok = filelib:ensure_dir(File),
-        case dets:open_file(Identifier, [{file, File}]) of
+        case dets:open_file(Identifier, [
+                    {file, File},
+                    %% Autosave interval, default is 180000
+                    {auto_save, 3000}
+                ]) of
             {ok, Identifier} ->
                 {ok, #state{ref=Identifier}};
             {error, Error} ->
