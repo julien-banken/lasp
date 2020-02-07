@@ -671,39 +671,48 @@ bind_to(AccId, Id, Store, BindFun, ReadFun) ->
 %%      function for the `BindFun', which is responsible for binding the
 %%      result, for instance, when it's located in another table.
 %%
-%%      @todo track in dag
-%%
 -spec fold(id(), function(), id(), store(), function(), function()) ->
     {ok, pid()}.
-fold(Id, Function, AccId, Store, BindFun, ReadFun) ->
+fold(Id, Function, AccId, Store, _, ReadFun) ->
     {ok, {_, AccType, _, AccInitValue}} = ReadFun(AccId, undefined),
-    Fun = fun({_, T, _, V}) ->
-            AccValue = fold_internal(T, V, Function, AccType, AccInitValue),
-            {ok, _} = BindFun(AccId, AccValue, Store)
+    TransFun = fun({_, T, _, {_, V}}) ->
+        fold_internal(T, V, Function, AccType, AccInitValue)
     end,
-    lasp_process:start_link([[{Id, ReadFun}], Fun]).
+    WriteFun = fun(_, AccValue) ->
+        % io:format("AccValue: ~p~n", [AccValue]),
+        % io:format("AccID: ~p~n", [AccId]),
+        % io:format("Store: ~p~n", [Store]),
+        lasp_core:bind_var(AccId, AccValue, Store)
+    end,
+    lasp_process:start_dag_link([
+        [{Id, ReadFun}],
+        TransFun,
+        {AccId, WriteFun}
+    ]).
 
 fold_internal(orset, Value, Function, AccType, AccValue) ->
     lists:foldl(fun({X, Causality}, AccValue1) ->
-        lists:foldl(fun({Actor, Deleted}, AccValue2) ->
-                            %% Execute the fold function for the current
-                            %% element.
-                            Ops = Function(X, AccValue2),
-
-                            %% Apply all operations to the accumulator.
-                            lists:foldl(fun(Op, Acc) ->
-                                                {ok, A} = lasp_type:update(AccType, Op, Actor, Acc),
-                                                case Deleted of
-                                                    true ->
-                                                        InverseOp = lasp_operations:inverse(AccType, Op),
-                                                        {ok, B} = lasp_type:update(AccType, InverseOp, Actor, A),
-                                                        B;
-                                                    false ->
-                                                        A
-                                                end
-                                        end, AccValue2, Ops)
-            end, AccValue1, Causality)
-        end, AccValue, Value).
+        
+        % io:format("X=~w Causality=~w AccValue1=~w~n", [X, Causality, AccValue1]),
+        
+        lists:foldl(fun({Actor, Active}, AccValue2) ->
+            %% Execute the fold function for the current
+            %% element.
+            Ops = Function(X, AccValue2),
+            %% Apply all operations to the accumulator.
+            lists:foldl(fun(Op, Acc) ->
+                {ok, A} = lasp_type:update(AccType, Op, Actor, Acc),
+                case Active of
+                    false ->
+                        InverseOp = lasp_operations:inverse(AccType, Op),
+                        {ok, B} = lasp_type:update(AccType, InverseOp, Actor, A),
+                        B;
+                    true ->
+                        A
+                end
+                end, AccValue2, Ops)
+        end, AccValue1, Causality)
+    end, AccValue, Value).
 
 %% @doc Compute the cartesian product of two sets.
 %%
@@ -928,7 +937,7 @@ reply_to_all([{threshold, read, From, Type, Threshold}=H|T],
                     gen_server:reply({Address, Ref},
                                      {ok, {Id, Type, Metadata, Value}});
                 {fsm, undefined, Address} ->
-                    gen_fsm:send_event(Address,
+                    gen_fsm_compat:send_event(Address,
                                        {ok, undefined,
                                         {Id, Type, Metadata, Value}});
                 {Address, Ref} ->
@@ -951,7 +960,7 @@ reply_to_all([{threshold, wait, From, Type, Threshold}=H|T],
                 {server, undefined, {Address, Ref}} ->
                     gen_server:reply({Address, Ref}, {ok, RThreshold});
                 {fsm, undefined, Address} ->
-                    gen_fsm:send_event(Address,
+                    gen_fsm_compat:send_event(Address,
                                        {ok, undefined, RThreshold});
                 {Address, Ref} ->
                     gen_server:reply({Address, Ref}, {ok, RThreshold});
@@ -968,7 +977,7 @@ reply_to_all([From|T], StillWaiting, Result) ->
         {server, undefined, {Address, Ref}} ->
             gen_server:reply({Address, Ref}, Result);
         {fsm, undefined, Address} ->
-            gen_fsm:send_event(Address, Result);
+            gen_fsm_compat:send_event(Address, Result);
         {Address, Ref} ->
             gen_server:reply({Address, Ref}, Result);
         _ ->

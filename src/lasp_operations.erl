@@ -24,4 +24,6 @@
 -export([inverse/2]).
 
 inverse(pncounter, {increment, X}) ->
-    {decrement, X}.
+    {decrement, X};
+inverse(pncounter, increment) ->
+    decrement.
