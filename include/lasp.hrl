@@ -201,9 +201,11 @@
 
 %% Definitions for the bind/read fun abstraction.
 
--define(CORE_BIND, fun(_AccId, _AccValue, _Store) ->
-                ?CORE:bind(_AccId, _AccValue, _Store)
-              end).
+-define(CORE_BIND, fun(_Store) ->
+                 fun(_AccId, _AccValue) ->
+                    ?CORE:bind(_AccId, _AccValue, _Store)
+                 end
+               end).
 
 -define(CORE_WRITE, fun(_Store) ->
                  fun(_AccId, _AccValue) ->

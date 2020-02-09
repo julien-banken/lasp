@@ -79,9 +79,11 @@
 -export([enforce_once/4]).
 
 %% Definitions for the bind/read fun abstraction.
--define(BACKEND_BIND, fun(_AccId, AccValue, _Store) ->
-                ?MODULE:bind_var(_AccId, AccValue, _Store)
-              end).
+-define(BACKEND_BIND, fun(_Store) ->
+                 fun(_AccId, _AccValue) ->
+                   ?MODULE:bind_var(_AccId, _AccValue, _Store)
+                 end
+               end).
 
 -define(BACKEND_WRITE, fun(_Store) ->
                  fun(_AccId, _AccValue) ->
@@ -673,28 +675,19 @@ bind_to(AccId, Id, Store, BindFun, ReadFun) ->
 %%
 -spec fold(id(), function(), id(), store(), function(), function()) ->
     {ok, pid()}.
-fold(Id, Function, AccId, Store, _, ReadFun) ->
+fold(Id, Function, AccId, Store, BindFun, ReadFun) ->
     {ok, {_, AccType, _, AccInitValue}} = ReadFun(AccId, undefined),
     TransFun = fun({_, T, _, {_, V}}) ->
         fold_internal(T, V, Function, AccType, AccInitValue)
     end,
-    WriteFun = fun(_, AccValue) ->
-        % io:format("AccValue: ~p~n", [AccValue]),
-        % io:format("AccID: ~p~n", [AccId]),
-        % io:format("Store: ~p~n", [Store]),
-        lasp_core:bind_var(AccId, AccValue, Store)
-    end,
     lasp_process:start_dag_link([
         [{Id, ReadFun}],
         TransFun,
-        {AccId, WriteFun}
+        {AccId, BindFun(Store)}
     ]).
 
 fold_internal(orset, Value, Function, AccType, AccValue) ->
     lists:foldl(fun({X, Causality}, AccValue1) ->
-        
-        % io:format("X=~w Causality=~w AccValue1=~w~n", [X, Causality, AccValue1]),
-        
         lists:foldl(fun({Actor, Active}, AccValue2) ->
             %% Execute the fold function for the current
             %% element.
