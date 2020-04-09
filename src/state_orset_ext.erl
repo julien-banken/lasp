@@ -20,6 +20,7 @@
 
 -module(state_orset_ext).
 -author("Christopher S. Meiklejohn <christopher.meiklejohn@gmail.com>").
+-define(TYPE, state_orset).
 
 -export([intersect/2,
          map/2,
@@ -27,43 +28,47 @@
          product/2,
          filter/2]).
 
+-export([
+    delta_operations/2
+]).
+
 union(LValue, RValue) ->
     state_orset:merge(LValue, RValue).
 
-product({state_orset, LValue}, {state_orset, RValue}) ->
-    FolderFun = fun({X, XCausality}, {state_orset, Acc}) ->
-        {state_orset, Acc ++ [{{X, Y}, causal_product(XCausality, YCausality)} || {Y, YCausality} <- RValue]}
+product({?TYPE, LValue}, {?TYPE, RValue}) ->
+    FolderFun = fun({X, XCausality}, {?TYPE, Acc}) ->
+        {?TYPE, Acc ++ [{{X, Y}, causal_product(XCausality, YCausality)} || {Y, YCausality} <- RValue]}
     end,
     lists:foldl(FolderFun, new(), LValue).
 
-intersect({state_orset, LValue}, RValue) ->
+intersect({?TYPE, LValue}, RValue) ->
     lists:foldl(intersect_folder(RValue), new(), LValue).
 
 %% @private
-intersect_folder({state_orset, RValue}) ->
-    fun({X, XCausality}, {state_orset, Acc}) ->
+intersect_folder({?TYPE, RValue}) ->
+    fun({X, XCausality}, {?TYPE, Acc}) ->
             Values = case lists:keyfind(X, 1, RValue) of
                          {_Y, YCausality} ->
                              [{X, causal_union(XCausality, YCausality)}];
                          false ->
                              []
                      end,
-            {state_orset, Acc ++ Values}
+            {?TYPE, Acc ++ Values}
     end.
 
-map(Function, {state_orset, V}) ->
-    FolderFun = fun({X, Causality}, {state_orset, Acc}) ->
-                        {state_orset, Acc ++ [{Function(X), Causality}]}
+map(Function, {?TYPE, V}) ->
+    FolderFun = fun({X, Causality}, {?TYPE, Acc}) ->
+                        {?TYPE, Acc ++ [{Function(X), Causality}]}
                 end,
     lists:foldl(FolderFun, new(), V).
 
-filter(Function, {state_orset, V}) ->
-    FolderFun = fun({X, Causality}, {state_orset, Acc}) ->
+filter(Function, {?TYPE, V}) ->
+    FolderFun = fun({X, Causality}, {?TYPE, Acc}) ->
                         case Function(X) of
                             true ->
-                                {state_orset, Acc ++ [{X, Causality}]};
+                                {?TYPE, Acc ++ [{X, Causality}]};
                             false ->
-                                {state_orset, Acc}
+                                {?TYPE, Acc}
                         end
                 end,
     lists:foldl(FolderFun, new(), V).
@@ -83,3 +88,37 @@ causal_product(Xs, Ys) ->
 %% @private
 causal_union(Xs, Ys) ->
         Xs ++ Ys.
+
+%% @private
+get_operations(Orddict, Value, Token, true) ->
+    case orddict:find(Value, Orddict) of
+        error -> [{add, Value}];
+        {ok, Tokens} ->
+            case orddict:find(Token, Tokens) of
+                error -> [{add, Value}];
+                {ok, true} -> [];
+                {ok, false} ->
+                    erlang:error("Not a strict inflation")
+            end
+    end;
+get_operations(Orddict, Value, Token, false) ->
+    case orddict:find(Value, Orddict) of
+        error -> [{add, Value}, {rmv, Value}];
+        {ok, Tokens} ->
+            case orddict:find(Token, Tokens) of
+                error -> [{add, Value}, {rmv, Value}];
+                {ok, false} -> [];
+                {ok, true} -> [{rmv, Value}]
+            end
+    end.
+
+delta_operations({?TYPE, A}=ORSet1, {?TYPE, B}=ORSet2) ->
+    case state_orset:is_strict_inflation(ORSet1, ORSet2) of
+        true ->
+            orddict:fold(fun(Value, Tokens, Acc1) ->
+                Acc1 ++ orddict:fold(fun(Token, Flag, Acc2) ->
+                    Acc2 ++ get_operations(A, Value, Token, Flag)
+                end, [], Tokens)
+            end, [], B);
+        false -> []
+    end.

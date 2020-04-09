@@ -1,4 +1,5 @@
 -module(state_gcounter_ext).
+-define(TYPE, state_gcounter).
 
 -export([
     sum/2,
@@ -6,8 +7,12 @@
     max/3
 ]).
 
-sum({state_gcounter, LValue}, {state_gcounter, RValue}) ->
-    {state_gcounter, orddict:merge(
+-export([
+    delta_operations/2
+]).
+
+sum({?TYPE, LValue}, {?TYPE, RValue}) ->
+    {?TYPE, orddict:merge(
         fun(_, Value1, Value2) ->
             Value1 + Value2
         end,
@@ -15,14 +20,27 @@ sum({state_gcounter, LValue}, {state_gcounter, RValue}) ->
         RValue
     )}.
 
-max({state_gcounter, _}=GCounter1, {state_gcounter, _}=GCounter2, Actor) ->
+max({?TYPE, _}=GCounter1, {?TYPE, _}=GCounter2, Actor) ->
     A = state_gcounter:query(GCounter1),
     B = state_gcounter:query(GCounter2),
     Max = erlang:max(A, B),
-    {state_gcounter, orddict:store(Actor, Max, orddict:new())}.
+    {?TYPE, orddict:store(Actor, Max, orddict:new())}.
 
-min({state_gcounter, _}=GCounter1, {state_gcounter, _}=GCounter2, Actor) ->
+min({?TYPE, _}=GCounter1, {?TYPE, _}=GCounter2, Actor) ->
     A = state_gcounter:query(GCounter1),
     B = state_gcounter:query(GCounter2),
     Min = erlang:min(A, B),
-    {state_gcounter, orddict:store(Actor, Min, orddict:new())}.
+    {?TYPE, orddict:store(Actor, Min, orddict:new())}.
+
+delta_operations({?TYPE, A}=GCounter1, {?TYPE, B}=GCounter2) ->
+    case state_gcounter:is_strict_inflation(GCounter1, GCounter2) of
+        true ->
+            I1 = orddict:fold(fun(_, Inc, Sum) ->
+                Inc + Sum
+            end, 0, A),
+            I2 = orddict:fold(fun(_, Inc, Sum) ->
+                Inc + Sum
+            end, 0, B),
+            [{increment, I2 - I1}];
+        false -> []
+    end.
